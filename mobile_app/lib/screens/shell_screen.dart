@@ -125,7 +125,7 @@ class _ShellScreenState extends State<ShellScreen> {
           ? HubScreen(onModuleTap: _openModule)
           : ModuleRouter.build(_route, auth.user?.role ?? ''),
       bottomNavigationBar: _buildBottomNav(menus),
-    );
+    ); 
   }
 
   String _short(String t) => t.length > 10 ? '${t.substring(0, 9)}…' : t;
