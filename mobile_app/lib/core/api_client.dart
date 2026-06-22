@@ -54,7 +54,24 @@ class ApiClient {
     required Map<String, String> fields,
     List<http.MultipartFile> files = const [],
   }) async {
-    final req = http.MultipartRequest('POST', uri(path));
+    return _multipart('POST', path, fields: fields, files: files);
+  }
+
+  Future<Map<String, dynamic>> putMultipart(
+    String path, {
+    required Map<String, String> fields,
+    List<http.MultipartFile> files = const [],
+  }) async {
+    return _multipart('POST', path, fields: {...fields, '_method': 'PUT'}, files: files);
+  }
+
+  Future<Map<String, dynamic>> _multipart(
+    String method,
+    String path, {
+    required Map<String, String> fields,
+    List<http.MultipartFile> files = const [],
+  }) async {
+    final req = http.MultipartRequest(method, uri(path));
     req.headers['Accept'] = 'application/json';
     if (token != null) req.headers['Authorization'] = 'Bearer $token';
     req.fields.addAll(fields);

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../core/platform_config.dart';
 import '../core/theme.dart';
+import '../widgets/form_ui.dart';
 import 'modules/chat_screen.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../providers/auth_provider.dart';
@@ -48,29 +49,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
               },
             ),
           ),
-          const Divider(),
+          const Divider(height: 32),
           Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextField(
-              controller: _urlCtrl,
-              decoration: InputDecoration(
-                labelText: 'API base URL (${PlatformConfig.platformLabel})',
-                helperText: kIsWeb
-                    ? '${PlatformConfig.webApiUrl}\nAlt: ${PlatformConfig.webApiUrlVhost}'
-                    : PlatformConfig.androidApiUrl,
-              ),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.page),
+            child: FormSection(
+              title: 'API server',
+              subtitle: 'Change only if using a different backend URL',
+              icon: Icons.dns_outlined,
+              children: [
+                AppTextField(
+                  controller: _urlCtrl,
+                  label: 'API base URL',
+                  prefixIcon: Icons.link,
+                  hint: kIsWeb ? PlatformConfig.webApiUrl : PlatformConfig.androidApiUrl,
+                ),
+                AppPrimaryButton(
+                  label: 'Save API URL',
+                  icon: Icons.save_outlined,
+                  onPressed: () async {
+                    await auth.setBaseUrl(_urlCtrl.text.trim());
+                    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('URL saved — re-login if needed')));
+                  },
+                ),
+              ],
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: FilledButton(
-              onPressed: () async {
-                await auth.setBaseUrl(_urlCtrl.text.trim());
-                if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('URL saved — re-login if needed')));
-              },
-              child: const Text('Save API URL'),
-            ),
-          ),
+          const SizedBox(height: 8),
           ListTile(title: const Text('Online payment'), subtitle: Text(auth.paymentGatewayEnabled ? 'Enabled' : 'Disabled — pay at society office')),
           const ListTile(title: Text('Push notifications'), subtitle: Text('Configure FCM token in production')),
           ListTile(

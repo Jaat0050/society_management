@@ -180,6 +180,8 @@ class AuthController extends Controller
                 'id' => $user->member->id,
                 'member_type' => $user->member->member_type,
                 'flat' => $user->member->flat?->label,
+                'id_proof_type' => $user->member->id_proof_type,
+                'id_proof_no' => $user->member->id_proof_no,
                 'family' => $user->member->family,
                 'vehicles' => $user->member->vehicles,
             ] : null,

@@ -28,7 +28,7 @@ class CommitteeApiController extends Controller
     public function complaints(Request $request)
     {
         return $this->ok(
-            Complaint::where('society_id', $this->societyId())->with(['flat', 'assignedStaff'])->latest()->paginate(20)
+            Complaint::where('society_id', $this->societyId())->with(['flat', 'assignedStaff', 'logs'])->latest()->paginate(20)
         );
     }
 

@@ -182,8 +182,11 @@ class DataListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: Colors.grey.shade200)),
       child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         leading: leading != null
             ? CircleAvatar(backgroundColor: AppTheme.primary.withValues(alpha: 0.1), child: Icon(leading, color: AppTheme.primary, size: 20))
             : null,

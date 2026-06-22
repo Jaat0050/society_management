@@ -68,7 +68,7 @@ class _HubScreenState extends State<HubScreen> {
           SliverToBoxAdapter(
             child: PageHeader(
               title: user?.societyName ?? 'Society',
-              subtitle: '${user?.roleLabel ?? ''} • ${user?.name ?? ''}${user?.flat != null ? ' • ${user!.flat}' : ''}\nGreen Valley Residency — real-time overview',
+              subtitle: '${user?.roleLabel ?? ''} • ${user?.name ?? ''}${user?.flat != null ? ' • ${user!.flat}' : ''}',
             ),
           ),
           if (!loading && stats.isNotEmpty)

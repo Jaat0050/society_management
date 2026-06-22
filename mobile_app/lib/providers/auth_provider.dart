@@ -101,6 +101,14 @@ class AuthProvider extends ChangeNotifier {
     await _auth.setBaseUrl(url);
   }
 
+  Future<void> refreshUser() async {
+    if (!isLoggedIn) return;
+    try {
+      user = await _auth.me();
+      notifyListeners();
+    } catch (_) {}
+  }
+
   String get baseUrl => _auth.baseUrl;
   AuthService get authService => _auth;
 }

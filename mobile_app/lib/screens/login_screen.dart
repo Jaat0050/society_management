@@ -6,6 +6,7 @@ import '../core/constants.dart';
 import '../core/platform_config.dart';
 import '../core/theme.dart';
 import '../providers/auth_provider.dart';
+import '../widgets/form_ui.dart';
 import 'shell_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -97,35 +98,37 @@ class _LoginScreenState extends State<LoginScreen> {
                           onSelectionChanged: (s) => setState(() => _otpMode = s.first),
                         ),
                         const SizedBox(height: 20),
-                        if (_otpMode) ...[
-                          TextField(controller: _phoneCtrl, decoration: const InputDecoration(labelText: 'Phone', prefixIcon: Icon(Icons.phone))),
-                          const SizedBox(height: 12),
-                          TextField(controller: _otpCtrl, decoration: const InputDecoration(labelText: 'OTP (dev: 123456)', prefixIcon: Icon(Icons.pin)), keyboardType: TextInputType.number),
-                        ] else ...[
-                          TextField(controller: _loginCtrl, decoration: const InputDecoration(labelText: 'Email or phone', prefixIcon: Icon(Icons.person))),
-                          const SizedBox(height: 12),
-                          TextField(controller: _passCtrl, decoration: const InputDecoration(labelText: 'Password', prefixIcon: Icon(Icons.lock)), obscureText: true),
-                        ],
+                        if (_otpMode)
+                          SpacedColumn(
+                            children: [
+                              AppTextField(controller: _phoneCtrl, label: 'Phone', prefixIcon: Icons.phone, keyboardType: TextInputType.phone),
+                              AppTextField(controller: _otpCtrl, label: 'OTP (dev: 123456)', prefixIcon: Icons.pin, keyboardType: TextInputType.number),
+                            ],
+                          )
+                        else
+                          SpacedColumn(
+                            children: [
+                              AppTextField(controller: _loginCtrl, label: 'Email or phone', prefixIcon: Icons.person),
+                              AppTextField(controller: _passCtrl, label: 'Password', prefixIcon: Icons.lock, obscureText: true),
+                            ],
+                          ),
                         const SizedBox(height: 8),
                         TextButton(
                           onPressed: () => setState(() => _showAdvanced = !_showAdvanced),
                           child: Text(_showAdvanced ? 'Hide server URL' : 'API server URL'),
                         ),
                         if (_showAdvanced)
-                          TextField(
-                            controller: _urlCtrl,
-                            decoration: InputDecoration(
-                              labelText: 'API base URL',
-                              helperText: kIsWeb ? PlatformConfig.webApiUrl : PlatformConfig.androidApiUrl,
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: AppTextField(
+                              controller: _urlCtrl,
+                              label: 'API base URL',
+                              prefixIcon: Icons.link,
+                              hint: kIsWeb ? PlatformConfig.webApiUrl : PlatformConfig.androidApiUrl,
                             ),
                           ),
-                        const SizedBox(height: 20),
-                        FilledButton(
-                          onPressed: auth.loading ? null : _submit,
-                          child: auth.loading
-                              ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                              : const Text('Sign in'),
-                        ),
+                        const SizedBox(height: 12),
+                        AppPrimaryButton(label: 'Sign in', loading: auth.loading, onPressed: _submit, icon: Icons.login_rounded),
                         const SizedBox(height: 20),
                         Text('Quick demo login', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
                         const SizedBox(height: 8),

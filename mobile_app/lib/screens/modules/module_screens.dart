@@ -4,7 +4,11 @@ import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../utils/data_parser.dart';
+import '../../widgets/form_ui.dart';
 import '../../widgets/ui_kit.dart';
+import 'complaint_screens.dart';
+import 'guard_screens.dart';
+import 'resident_screens.dart';
 import 'api_screen.dart';
 import 'chat_screen.dart';
 import 'gate_pass_screen.dart';
@@ -64,13 +68,13 @@ class ModuleScreens {
       case '/profile':
         return _ProfileScreen();
       case '/family':
-        return _FamilyScreen();
+        return const FamilyMembersScreen();
       case '/vehicles':
-        return _VehiclesScreen();
+        return const VehiclesScreen();
       case '/documents':
-        return _DocumentsScreen();
+        return const DocumentsScreen();
       case '/bills':
-        return _BillsScreen(path: '$r/bills');
+        return BillsListScreen(path: '$r/bills');
       case '/payments':
         if (role == 'vendor') {
           return ApiScreen(
@@ -85,17 +89,21 @@ class ModuleScreens {
         }
         return ApiScreen(title: 'Payment History', path: '$r/payments/history', itemBuilder: _paymentTile);
       case '/complaints':
-        return _ComplaintsScreen(path: role == 'committee' ? '/committee/complaints' : '$r/complaints');
+        return ComplaintsListScreen(
+          path: role == 'committee' ? '/committee/complaints' : '$r/complaints',
+          canCreate: role == 'resident' || role == 'tenant',
+          readOnly: role == 'committee',
+        );
       case '/visitors':
-        return _VisitorsScreen(path: '$r/visitors');
+        return VisitorsListScreen(path: '$r/visitors');
       case '/notices':
-        return ApiScreen(title: 'Notices', path: role == 'committee' ? '/committee/notices' : '$r/notices', itemBuilder: _noticeTile);
+        return NoticesListScreen(path: role == 'committee' ? '/committee/notices' : '$r/notices');
       case '/events':
-        return ApiScreen(title: 'Events', path: role == 'committee' ? '/committee/events' : '$r/events', itemBuilder: _eventTile);
+        return EventsListScreen(path: role == 'committee' ? '/committee/events' : '$r/events');
       case '/amenities':
-        return _AmenitiesScreen(path: '$r/amenities');
+        return AmenitiesListScreen(path: '$r/amenities');
       case '/bookings':
-        return ApiScreen(title: 'Bookings', path: '$r/bookings', itemBuilder: _bookingTile);
+        return BookingsListScreen(path: '$r/bookings');
       case '/sos':
         return _SosScreen(path: '$r/sos');
       case '/emergency':
@@ -107,11 +115,11 @@ class ModuleScreens {
       case '/gate-pass':
         return const _GatePassListScreen();
       case '/scan':
-        return _GuardScanScreen();
+        return const GuardVerifyScreen();
       case '/new-entry':
-        return _GuardEntryScreen();
+        return const GuardNewEntryScreen();
       case '/inside':
-        return ApiScreen(title: 'Inside Gate', path: '/guard/inside', itemBuilder: _visitorTile);
+        return const GuardInsideScreen();
       case '/checkin':
         return _GuardActionScreen(title: 'Check-in', action: 'check-in');
       case '/checkout':
@@ -121,17 +129,17 @@ class ModuleScreens {
       case '/delivery':
         return ApiScreen(title: 'Delivery Staff', path: '/guard/delivery-staff', itemBuilder: _deliveryTile);
       case '/vehicle':
-        return _VehicleVerifyScreen();
+        return const VehicleVerifyScreen();
       case '/attendance':
         return role == 'guard' ? _GuardAttendanceScreen() : _StaffAttendanceScreen();
       case '/staff-list':
         return ApiScreen(title: 'Staff', path: '/guard/staff', itemBuilder: _staffTile);
       case '/sos-alerts':
-        return _SosAlertsScreen();
+        return const SosAlertsScreen();
       case '/incidents':
         return _IncidentScreen();
       case '/tasks':
-        return _TasksScreen(role: role);
+        return TasksListScreen(role: role);
       case '/schedule':
         return _ScheduleScreen(role: role);
       case '/inventory':
@@ -158,6 +166,16 @@ class ModuleScreens {
   }
 
   static String _residentPrefix(String role) => (role == 'resident' || role == 'tenant') ? '/resident' : '/resident';
+
+  static Future<void> openGatePass(BuildContext c, String basePath, dynamic id) async {
+    try {
+      final j = await c.read<AuthProvider>().authService.client.get('$basePath/$id/pass');
+      if (!c.mounted) return;
+      Navigator.push(c, MaterialPageRoute(builder: (_) => GatePassScreen.fromApi(parseMap(j['data']))));
+    } catch (e) {
+      if (c.mounted) ScaffoldMessenger.of(c).showSnackBar(SnackBar(content: Text('$e')));
+    }
+  }
 
   static Widget _paymentTile(BuildContext c, Map<String, dynamic> item) => DataListTile(
         title: formatMoney(item['amount']),
@@ -259,31 +277,42 @@ class _ProfileScreenState extends State<_ProfileScreen> {
               children: [
                 Card(
                   child: ListTile(
-                    leading: CircleAvatar(backgroundColor: AppTheme.primary, child: Text(u?.name.isNotEmpty == true ? u!.name[0] : '?', style: const TextStyle(color: Colors.white))),
-                    title: Text(u?.roleLabel ?? ''),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    leading: CircleAvatar(
+                      radius: 28,
+                      backgroundColor: AppTheme.primary,
+                      child: Text(u?.name.isNotEmpty == true ? u!.name[0].toUpperCase() : '?', style: const TextStyle(color: Colors.white, fontSize: 22)),
+                    ),
+                    title: Text(u?.roleLabel ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
                     subtitle: Text('${u?.email ?? ''}\nFlat: ${u?.flat ?? '—'}'),
                     isThreeLine: true,
                   ),
                 ),
-                const SizedBox(height: 16),
-                TextField(controller: _name, decoration: const InputDecoration(labelText: 'Full name')),
-                const SizedBox(height: 12),
-                TextField(controller: _phone, decoration: const InputDecoration(labelText: 'Phone')),
-                const SizedBox(height: 20),
-                FilledButton(
-                  onPressed: saving
-                      ? null
-                      : () async {
-                          setState(() => saving = true);
-                          try {
-                            await context.read<AuthProvider>().authService.client.put('/profile', body: {'name': _name.text, 'phone': _phone.text});
-                            if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile saved')));
-                          } catch (e) {
-                            if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
-                          }
-                          setState(() => saving = false);
-                        },
-                  child: saving ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Save profile'),
+                FormSection(
+                  title: 'Edit profile',
+                  icon: Icons.edit_outlined,
+                  children: [
+                    AppTextField(controller: _name, label: 'Full name', prefixIcon: Icons.person_outline),
+                    AppTextField(controller: _phone, label: 'Phone', prefixIcon: Icons.phone_outlined, keyboardType: TextInputType.phone),
+                    AppPrimaryButton(
+                      label: 'Save profile',
+                      loading: saving,
+                      icon: Icons.save_outlined,
+                      onPressed: saving
+                          ? null
+                          : () async {
+                              setState(() => saving = true);
+                              try {
+                                await context.read<AuthProvider>().authService.client.put('/profile', body: {'name': _name.text, 'phone': _phone.text});
+                                await context.read<AuthProvider>().refreshUser();
+                                if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile saved')));
+                              } catch (e) {
+                                if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+                              }
+                              setState(() => saving = false);
+                            },
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -874,22 +903,27 @@ class _GuardActionScreenState extends State<_GuardActionScreen> {
       body: Column(
         children: [
           PageHeader(title: widget.title),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
+          Expanded(
+            child: FormPageBody(
               children: [
-                TextField(controller: _id, decoration: const InputDecoration(labelText: 'Visitor entry ID', prefixIcon: Icon(Icons.tag))),
-                const SizedBox(height: 16),
-                FilledButton(
-                  onPressed: () async {
-                    try {
-                      await context.read<AuthProvider>().authService.client.post('/guard/entries/${_id.text}/${widget.action}');
-                      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${widget.title} done')));
-                    } catch (e) {
-                      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
-                    }
-                  },
-                  child: Text(widget.title),
+                FormSection(
+                  title: widget.title,
+                  icon: Icons.how_to_reg_outlined,
+                  children: [
+                    AppTextField(controller: _id, label: 'Visitor entry ID', prefixIcon: Icons.tag, keyboardType: TextInputType.number),
+                    AppPrimaryButton(
+                      label: widget.title,
+                      icon: Icons.check_rounded,
+                      onPressed: () async {
+                        try {
+                          await context.read<AuthProvider>().authService.client.post('/guard/entries/${_id.text}/${widget.action}');
+                          if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${widget.title} done')));
+                        } catch (e) {
+                          if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+                        }
+                      },
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -970,27 +1004,34 @@ class _GuardAttendanceScreenState extends State<_GuardAttendanceScreen> {
         children: [
           const PageHeader(title: 'Staff attendance'),
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(16),
+            child: FormPageBody(
               children: [
-                DropdownButtonFormField<int>(
-                  value: selectedId,
-                  decoration: const InputDecoration(labelText: 'Staff member'),
-                  items: staff.map((s) => DropdownMenuItem(value: s['id'] as int, child: Text(s['name']?.toString() ?? ''))).toList(),
-                  onChanged: (v) => setState(() => selectedId = v),
-                ),
-                FilledButton(
-                  onPressed: selectedId == null
-                      ? null
-                      : () async {
-                          try {
-                            await context.read<AuthProvider>().authService.client.post('/guard/attendance', body: {'staff_id': selectedId, 'status': 'present'});
-                            if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Recorded')));
-                          } catch (e) {
-                            if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
-                          }
-                        },
-                  child: const Text('Mark present'),
+                FormSection(
+                  title: 'Mark attendance',
+                  icon: Icons.badge_outlined,
+                  children: [
+                    AppDropdownField<int?>(
+                      value: selectedId,
+                      label: 'Staff member',
+                      prefixIcon: Icons.person_outline,
+                      items: staff.map((s) => DropdownMenuItem<int?>(value: s['id'] as int, child: Text(s['name']?.toString() ?? ''))).toList(),
+                      onChanged: (v) => setState(() => selectedId = v),
+                    ),
+                    AppPrimaryButton(
+                      label: 'Mark present',
+                      icon: Icons.check_circle_outline,
+                      onPressed: selectedId == null
+                          ? null
+                          : () async {
+                              try {
+                                await context.read<AuthProvider>().authService.client.post('/guard/attendance', body: {'staff_id': selectedId, 'status': 'present'});
+                                if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Recorded')));
+                              } catch (e) {
+                                if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+                              }
+                            },
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -1042,30 +1083,39 @@ class _IncidentScreenState extends State<_IncidentScreen> {
         children: [
           const PageHeader(title: 'Report incident'),
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(16),
+            child: FormPageBody(
               children: [
-                TextField(controller: _title, decoration: const InputDecoration(labelText: 'Title')),
-                TextField(controller: _desc, decoration: const InputDecoration(labelText: 'Description'), maxLines: 3),
-                DropdownButtonFormField(
-                  value: _sev,
-                  items: ['low', 'medium', 'high', 'critical'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-                  onChanged: (v) => setState(() => _sev = v ?? 'medium'),
-                ),
-                FilledButton(
-                  onPressed: () async {
-                    try {
-                      await context.read<AuthProvider>().authService.client.post('/guard/incidents', body: {
-                        'title': _title.text,
-                        'description': _desc.text,
-                        'severity': _sev,
-                      });
-                      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Incident reported')));
-                    } catch (e) {
-                      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
-                    }
-                  },
-                  child: const Text('Submit'),
+                FormSection(
+                  title: 'Incident report',
+                  subtitle: 'Security team will be notified',
+                  icon: Icons.warning_amber_rounded,
+                  children: [
+                    AppTextField(controller: _title, label: 'Title', prefixIcon: Icons.title_outlined),
+                    AppTextField(controller: _desc, label: 'Description', prefixIcon: Icons.description_outlined, maxLines: 3),
+                    AppDropdownField<String>(
+                      value: _sev,
+                      label: 'Severity',
+                      prefixIcon: Icons.flag_outlined,
+                      items: ['low', 'medium', 'high', 'critical'].map((e) => DropdownMenuItem(value: e, child: Text(statusLabel(e)))).toList(),
+                      onChanged: (v) => setState(() => _sev = v ?? 'medium'),
+                    ),
+                    AppPrimaryButton(
+                      label: 'Submit report',
+                      icon: Icons.send_rounded,
+                      onPressed: () async {
+                        try {
+                          await context.read<AuthProvider>().authService.client.post('/guard/incidents', body: {
+                            'title': _title.text,
+                            'description': _desc.text,
+                            'severity': _sev,
+                          });
+                          if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Incident reported')));
+                        } catch (e) {
+                          if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+                        }
+                      },
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -1120,25 +1170,31 @@ class _InventoryScreenState extends State<_InventoryScreen> {
       body: Column(
         children: [
           const PageHeader(title: 'Inventory request'),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
+          Expanded(
+            child: FormPageBody(
               children: [
-                TextField(controller: _item, decoration: const InputDecoration(labelText: 'Item')),
-                TextField(controller: _qty, decoration: const InputDecoration(labelText: 'Quantity'), keyboardType: TextInputType.number),
-                FilledButton(
-                  onPressed: () async {
-                    try {
-                      await context.read<AuthProvider>().authService.client.post('/staff/inventory', body: {
-                        'item': _item.text,
-                        'quantity': int.tryParse(_qty.text) ?? 1,
-                      });
-                      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Request submitted')));
-                    } catch (e) {
-                      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
-                    }
-                  },
-                  child: const Text('Submit request'),
+                FormSection(
+                  title: 'Request items',
+                  icon: Icons.inventory_2_outlined,
+                  children: [
+                    AppTextField(controller: _item, label: 'Item name', prefixIcon: Icons.build_outlined),
+                    AppTextField(controller: _qty, label: 'Quantity', prefixIcon: Icons.numbers_outlined, keyboardType: TextInputType.number),
+                    AppPrimaryButton(
+                      label: 'Submit request',
+                      icon: Icons.send_rounded,
+                      onPressed: () async {
+                        try {
+                          await context.read<AuthProvider>().authService.client.post('/staff/inventory', body: {
+                            'item': _item.text,
+                            'quantity': int.tryParse(_qty.text) ?? 1,
+                          });
+                          if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Request submitted')));
+                        } catch (e) {
+                          if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+                        }
+                      },
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -1397,25 +1453,31 @@ class _AddExpenseScreenState extends State<_AddExpenseScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('New expense')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      body: FormPageBody(
         children: [
-          TextField(controller: _cat, decoration: const InputDecoration(labelText: 'Category')),
-          TextField(controller: _amt, decoration: const InputDecoration(labelText: 'Amount'), keyboardType: TextInputType.number),
-          FilledButton(
-            onPressed: () async {
-              try {
-                await context.read<AuthProvider>().authService.client.post('/accountant/expenses', body: {
-                  'category': _cat.text,
-                  'amount': double.tryParse(_amt.text) ?? 0,
-                  'expense_date': DateTime.now().toIso8601String().split('T').first,
-                });
-                if (context.mounted) Navigator.pop(context);
-              } catch (e) {
-                if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
-              }
-            },
-            child: const Text('Save expense'),
+          FormSection(
+            title: 'New expense',
+            icon: Icons.receipt_long_outlined,
+            children: [
+              AppTextField(controller: _cat, label: 'Category', prefixIcon: Icons.category_outlined),
+              AppTextField(controller: _amt, label: 'Amount', prefixIcon: Icons.currency_rupee, keyboardType: TextInputType.number),
+              AppPrimaryButton(
+                label: 'Save expense',
+                icon: Icons.save_outlined,
+                onPressed: () async {
+                  try {
+                    await context.read<AuthProvider>().authService.client.post('/accountant/expenses', body: {
+                      'category': _cat.text,
+                      'amount': double.tryParse(_amt.text) ?? 0,
+                      'expense_date': DateTime.now().toIso8601String().split('T').first,
+                    });
+                    if (context.mounted) Navigator.pop(context);
+                  } catch (e) {
+                    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+                  }
+                },
+              ),
+            ],
           ),
         ],
       ),
@@ -1438,26 +1500,31 @@ class _VendorInvoiceScreenState extends State<_VendorInvoiceScreen> {
       body: Column(
         children: [
           const PageHeader(title: 'Submit invoice'),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
+          Expanded(
+            child: FormPageBody(
               children: [
-                TextField(controller: _amt, decoration: const InputDecoration(labelText: 'Amount'), keyboardType: TextInputType.number),
-                TextField(controller: _desc, decoration: const InputDecoration(labelText: 'Description'), maxLines: 2),
-                const SizedBox(height: 16),
-                FilledButton(
-                  onPressed: () async {
-                    try {
-                      await context.read<AuthProvider>().authService.client.post('/vendor/invoices', body: {
-                        'amount': double.tryParse(_amt.text) ?? 0,
-                        'description': _desc.text,
-                      });
-                      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invoice submitted')));
-                    } catch (e) {
-                      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
-                    }
-                  },
-                  child: const Text('Submit for review'),
+                FormSection(
+                  title: 'Invoice details',
+                  icon: Icons.request_quote_outlined,
+                  children: [
+                    AppTextField(controller: _amt, label: 'Amount', prefixIcon: Icons.currency_rupee, keyboardType: TextInputType.number),
+                    AppTextField(controller: _desc, label: 'Description', prefixIcon: Icons.notes_outlined, maxLines: 2),
+                    AppPrimaryButton(
+                      label: 'Submit for review',
+                      icon: Icons.send_rounded,
+                      onPressed: () async {
+                        try {
+                          await context.read<AuthProvider>().authService.client.post('/vendor/invoices', body: {
+                            'amount': double.tryParse(_amt.text) ?? 0,
+                            'description': _desc.text,
+                          });
+                          if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invoice submitted')));
+                        } catch (e) {
+                          if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+                        }
+                      },
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -1489,9 +1556,9 @@ class _GatePassListScreen extends StatelessWidget {
     return ApiScreen(
       title: 'My gate passes',
       path: path,
-      itemBuilder: (c, item) => ModuleScreens._visitorTile(c, item, onTap: () => _VisitorsScreen._openPass(c, path, item['id'])),
+      itemBuilder: (c, item) => ModuleScreens._visitorTile(c, item, onTap: () => ModuleScreens.openGatePass(c, path, item['id'])),
       floatingAction: FloatingActionButton.extended(
-        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const _PreRegisterVisitorScreen())),
+        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PreRegisterVisitorScreen())),
         icon: const Icon(Icons.qr_code),
         label: const Text('New pass'),
       ),

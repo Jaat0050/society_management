@@ -29,7 +29,7 @@ class StaffApiController extends Controller
             $query->where('assigned_staff_id', $staff->id);
         }
 
-        return $this->ok($query->with('flat')->latest()->paginate(20));
+        return $this->ok($query->with(['flat', 'logs'])->latest()->paginate(20));
     }
 
     public function updateTask(Request $request, int $id)
