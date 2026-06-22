@@ -1,47 +1,66 @@
-# Society Mobile App (Flutter)
+# society-managment
 
-Role-based customer app for Green Valley Society. Each login sees **only menus returned by the API** for that role.
+Society Management — Laravel admin panels + Flutter mobile app (role-based).
 
-## Setup
+# Society Manager — Admin Panels
 
-1. Start Laragon and ensure backend runs at e.g. `http://society.test` or `http://localhost/society/public`
-2. Run migrations & seed: `php artisan migrate --seed` (includes `MobileAppSeeder`)
-3. From this folder:
+Laravel 10 + Livewire 4 web admin panels based on `Book1.xlsx` requirements.
+
+**Phase 1 (current):** Super Admin + Society Admin web panels  
+**Phase 2 (later):** Flutter apps (Resident, Guard)
+
+## Setup (Laragon)
+
+1. Create MySQL database: `society`
+2. Copy `.env.example` to `.env` and set `DB_*` for MySQL
+3. Run:
 
 ```bash
-flutter pub get
-flutter run -d chrome --web-port=7357
+composer install
+php artisan key:generate
+php artisan migrate:fresh --seed
+php artisan serve
 ```
 
-Or double-click **`run_chrome.bat`** (Windows).
+Or use Laragon virtual host: `http://society.test`
 
-## API URL
+## Login credentials (after seed)
 
-**Chrome / Web (default):** `http://localhost/society/public/api/v1`  
-**Laragon vhost:** `http://society.test/api/v1` (change in login → API settings)
+| Role | Email | Password |
+|------|-------|----------|
+| Super Admin | superadmin@society.test | password |
+| Society Admin | admin@greenvalley.test | password |
 
-**Android emulator:** `http://10.0.2.2/society/public/api/v1`
+Login: `/login` — redirects by role automatically.
 
-Change on login screen → **API / server URL**, or in Settings.
+## Super Admin Panel (`/super-admin`)
 
-Physical device: use your PC LAN IP, e.g. `http://192.168.1.10/society/public/api/v1`
+- Global dashboard
+- Create / edit / delete / block societies
+- Assign society admins
+- Subscription plans
+- Global notifications
+- Reports & analytics
+- App settings
 
-## Payment gateway
+## Society Admin Panel (`/admin`)
 
-**Disabled** — bills show "Office pay" chip; no online pay button action.
+- Society dashboard
+- Towers / blocks
+- Flats
+- Residents
+- Staff
+- Complaints
+- Notice board
+- Events
+- Maintenance billing & payment tracking
+- Parking
+- Amenity booking
+- Society settings (visitor approval, etc.)
+- Reports
 
-## Demo logins
+## Roles (from Book1)
 
-Password: `password`
-
-| Role | Email |
-|------|--------|
-| Resident | resident@greenvalley.test |
-| Tenant | tenant@greenvalley.test |
-| Guard | guard@greenvalley.test |
-| Staff | staff@greenvalley.test |
-| Committee | committee@greenvalley.test |
-| Accountant | accountant@greenvalley.test |
-| Vendor | vendor@greenvalley.test |
-
-See [MOBILE_API.md](../MOBILE_API.md) for full endpoint list.
+- `super_admin` — platform control
+- `admin` — single society management
+- `resident`, `guard`, `staff`, `committee` — reserved for Flutter apps
