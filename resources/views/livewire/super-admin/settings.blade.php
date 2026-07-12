@@ -1,7 +1,19 @@
-<form wire:submit.prevent="save" class="bg-white rounded-xl border p-6 max-w-xl space-y-4">
-    <div><label class="text-sm">App Name</label><input wire:model="app_name" class="w-full rounded-lg border-slate-300 mt-1 text-sm"></div>
-    <div><label class="text-sm">Support Email</label><input wire:model="support_email" type="email" class="w-full rounded-lg border-slate-300 mt-1 text-sm"></div>
-    <div><label class="text-sm">Support Phone</label><input wire:model="support_phone" class="w-full rounded-lg border-slate-300 mt-1 text-sm"></div>
-    <div><label class="text-sm">Currency</label><input wire:model="currency" class="w-full rounded-lg border-slate-300 mt-1 text-sm"></div>
-    <button class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm">Save Settings</button>
+<form wire:submit.prevent="save" class="form-card max-w-xl space-y-4">
+    <div class="form-field">
+        <label class="form-label">App Name</label>
+        <input type="text" wire:model="app_name" class="form-control" placeholder="App name">
+    </div>
+    <div class="form-field">
+        <label class="form-label">Support Email</label>
+        <input type="email" wire:model="support_email" class="form-control" placeholder="support@example.com">
+    </div>
+    <div class="form-field">
+        <label class="form-label">Support Phone</label>
+        <input type="tel" wire:model="support_phone" class="form-control" placeholder="Support phone">
+    </div>
+    <div class="form-field">
+        <label class="form-label">Currency</label>
+        <input type="text" wire:model="currency" class="form-control" placeholder="e.g. INR">
+    </div>
+    <button type="submit" class="btn-primary">Save Settings</button>
 </form>

@@ -1,10 +1,18 @@
 <div class="grid lg:grid-cols-2 gap-6">
-    <form wire:submit.prevent="send" class="bg-white rounded-xl border p-6">
-        <h3 class="font-semibold mb-4">Send Global Notice</h3>
+    <form wire:submit.prevent="send" class="form-card">
+        <h3 class="form-card-title">Send Global Notice</h3>
         <div class="space-y-4">
-            <div><label class="text-sm">Title</label><input wire:model="title" class="w-full rounded-lg border-slate-300 mt-1 text-sm"></div>
-            <div><label class="text-sm">Message</label><textarea wire:model="body" rows="5" class="w-full rounded-lg border-slate-300 mt-1 text-sm"></textarea></div>
-            <button class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm">Send to All</button>
+            <div class="form-field">
+                <label class="form-label field-required">Title</label>
+                <input type="text" wire:model="title" class="form-control" placeholder="Notification title">
+                @error('title')<span class="field-error">{{ $message }}</span>@enderror
+            </div>
+            <div class="form-field">
+                <label class="form-label field-required">Message</label>
+                <textarea wire:model="body" rows="5" class="form-control" placeholder="Write your message..."></textarea>
+                @error('body')<span class="field-error">{{ $message }}</span>@enderror
+            </div>
+            <button type="submit" class="btn-primary">Send to All</button>
         </div>
     </form>
     <div class="bg-white rounded-xl border">
